@@ -1,6 +1,6 @@
 import connection from '../database.js';
 
-export async function getBlog() {
+export async function getAllBlog() {
  const  resutl = await connection.query('SELECT *  FROM blog');
  const response = {
     "message": "Blogs fetched successfully",
@@ -10,7 +10,7 @@ export async function getBlog() {
  return response
 }
 
-export async function createBlog(name, email) {
+export async function createBlog(req) {
  const  resutl = await connection.query('INSERT INTO blog (name, email) VALUES (?, ?)', [name, email]);
  const response = {
     "message": "Blog created successfully",
@@ -29,4 +29,12 @@ export async function getBlogById(id) {
     "statusCode": 200
  }
  return response
+}
+
+export async function updateBlogById(req) {
+
+}
+
+export async function deleteBlogById(req) {
+
 }

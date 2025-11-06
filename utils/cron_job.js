@@ -6,7 +6,7 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
 //run every minute
 export function startSessionCleaner() {
- cron.schedule('* * * * *', async () => {
+ cron.schedule('*/5 * * * *', async () => {
   console.log('Checking for expired sessions...');
   try {
     const [users] = await connection.query(
@@ -22,12 +22,12 @@ export function startSessionCleaner() {
             'UPDATE user SET is_logged_in = FALSE, session_token = NULL WHERE id = ?',
             [user.id]
           );
-          console.log(`User ${user.username} session expired — auto logged out.`);
+        //   console.log(`User ${user.username} session expired — auto logged out.`);
         }
       }
     }
   } catch (err) {
-    console.error('Error checking sessions:', err.message);
+    // console.error('Error checking sessions:', err.message);
   }
 });
 }
