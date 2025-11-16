@@ -1,33 +1,37 @@
 import cron from 'node-cron';
 import jwt from 'jsonwebtoken';
-import connection from './../database.js';
+import dotenv from 'dotenv';
+import User  from '../auth/models/User.js';
 
+dotenv.config();
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
 
-//run every minute
 export function startSessionCleaner() {
- cron.schedule('*/5 * * * *', async () => {
-  console.log('Checking for expired sessions...');
-  try {
-    const [users] = await connection.query(
-      'SELECT id, username, session_token FROM user WHERE is_logged_in = TRUE AND session_token IS NOT NULL'
-    );
+  cron.schedule('* * * * *', async () => {
+    console.log('Checking for expired sessions...');
+    try {
+      const users = await User.findAll({
+        where: {
+          is_logged_in: true,
+          session_token: { [User.sequelize.Op.ne]: null },
+        },
+        attributes: ['id', 'username', 'session_token'],
+      });
 
-    for (const user of users) {
-      try {
-        jwt.verify(user.session_token, JWT_SECRET_KEY);
-      } catch (err) {
-        if (err.name === 'TokenExpiredError') {
-          await connection.query(
-            'UPDATE user SET is_logged_in = FALSE, session_token = NULL WHERE id = ?',
-            [user.id]
-          );
-        //   console.log(`User ${user.username} session expired — auto logged out.`);
+      for (const user of users) {
+        try {
+          jwt.verify(user.session_token, JWT_SECRET_KEY);
+        } catch (err) {
+          if (err.name === 'TokenExpiredError') {
+            await User.update(
+              { is_logged_in: false, session_token: null },
+              { where: { id: user.id } }
+            );
+          }
         }
       }
+    } catch (err) {
+    
     }
-  } catch (err) {
-    // console.error('Error checking sessions:', err.message);
-  }
-});
+  });
 }

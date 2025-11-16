@@ -43,7 +43,7 @@ export async function verifyOtp(req) {
         return { message: "otp expired", statusCode: 400 };
     }
 
-    if (record.otp !== otp) return { message: "invalid otp", statusCode: 400  };
+    if (record.otp !== otp) return { message: `invalid otp ${record.otp}`, statusCode: 400  };
 
     otps.delete(email);
     return { ok: true, message: "otp verified" , statusCode: 200 };
