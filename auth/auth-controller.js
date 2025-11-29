@@ -19,11 +19,11 @@ export async function registerUser(req) {
     const hashedPassword = await bcrypt.hash(password.trim(), 10);
     const user = await User.create({ username, password: hashedPassword, email, role_id });
 
-    // await sendEmail({
-    //   to: email,
-    //   subject: "Welcome to Our Service",
-    //   message: `Hello ${username}, your account has been created successfully.`,
-    // });
+    await sendEmail({
+      to: email,
+      subject: "Welcome to Our Service",
+      message: `Hello , your member code is  ${username} and password  is ${password}, your account has been created successfully.`,
+    });
 
     return {
       statusCode: 201,
@@ -37,7 +37,33 @@ export async function registerUser(req) {
     return { statusCode: 500, message: err.message.split(":")[0], data: null };
   }
 }
+export async function registerUserAsMember(username,password, role_id, email) {
+  try {
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser)
+      return { statusCode: 409, message: "Username already exists", data: null };
 
+    const hashedPassword = await bcrypt.hash(password.trim(), 10);
+    const user = await User.create({ username, password: hashedPassword, email, role_id });
+
+    await sendEmail({
+      to: email,
+      subject: "Welcome to Our Service",
+      message: `Hello , your member code is  ${username} and password  is ${password}, your account has been created successfully.`,
+    });
+
+    return {
+      statusCode: 201,
+      message: "User registered successfully",
+      data: user,
+    };
+  } catch (err) {
+    if(err.name == "SequelizeForeignKeyConstraintError"){
+      return { statusCode: 500, message: "role not found", data: null };
+    }
+    return { statusCode: 500, message: err.message.split(":")[0], data: null };
+  }
+}
 //get all users
 export async function getAllUsers(){
   try {

@@ -22,12 +22,9 @@ const validateRegistration = [
   body("gender").notEmpty().withMessage("Gender is required"),
   body("phone").notEmpty().withMessage("Phone number is required"),
   body("idNo").notEmpty().withMessage("National ID is required"),
-  body("consituency").notEmpty().withMessage("Constituency is required"),
+  body("Constituency").notEmpty().withMessage("Constituency is required"),
   body("ward").notEmpty().withMessage("Ward is required"),
   body("county").notEmpty().withMessage("County is required"),
-  body("password")
-    .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters"),
   body("area_of_interest").notEmpty().withMessage("Area of interest is required"),
 ];
 
@@ -39,7 +36,7 @@ const validateUpdate = [
   body("gender").notEmpty().withMessage("Gender is required"),
   body("phone").notEmpty().withMessage("Phone number is required"),
   body("idNo").notEmpty().withMessage("National ID is required"),
-  body("consituency").notEmpty().withMessage("Constituency is required"),
+  body("Constituency").notEmpty().withMessage("Constituency is required"),
   body("ward").notEmpty().withMessage("Ward is required"),
   body("county").notEmpty().withMessage("County is required"),
   body("area_of_interest").notEmpty().withMessage("Area of interest is required"),
@@ -50,7 +47,7 @@ const validateUpdate = [
  * /api/members/register/member:
  *   post:
  *     summary: Register a new member
- *     description: Creates a new member record in the system
+ *     description: Registers a member and creates a linked user login account
  *     tags: [Member]
  *     requestBody:
  *       required: true
@@ -63,39 +60,90 @@ const validateUpdate = [
  *               - last_name
  *               - email
  *               - phone
- *               - password
+ *               - idNo
+ *               - username
+ *               - role_id
  *             properties:
  *               first_name:
  *                 type: string
+ *                 example: John
  *               last_name:
  *                 type: string
+ *                 example: Doe
  *               email:
  *                 type: string
+ *                 format: email
+ *                 example: john.doe@email.com
  *               dob:
  *                 type: string
  *                 format: date
+ *                 example: 1995-08-15
  *               gender:
  *                 type: string
+ *                 example: Male
  *               phone:
  *                 type: string
+ *                 example: "+254712345678"
  *               idNo:
  *                 type: string
- *               consituency:
+ *                 example: "12345678"
+ *               doc_type:
  *                 type: string
+ *                 example: National ID
+ *               Constituency:
+ *                 type: string
+ *                 example: Langata
  *               ward:
  *                 type: string
+ *                 example: Karen
  *               county:
  *                 type: string
- *               password:
- *                 type: string
+ *                 example: Nairobi
  *               area_of_interest:
  *                 type: string
+ *                 example: Agriculture
+ *               username:
+ *                 type: string
+ *                 example: johndoe
+ *               role_id:
+ *                 type: integer
+ *                 example: 2
  *     responses:
- *       200:
- *         description: Member successfully registered
+ *       201:
+ *         description: Member registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Member registered successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 12
+ *                     member_code:
+ *                       type: string
+ *                       example: MEM-2025-0012
+ *       409:
+ *         description: Duplicate email, phone number, or ID number
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Email already registered
  *       400:
  *         description: Validation error
+ *       500:
+ *         description: Internal server error
  */
+
 router.post("/register/member", validateRegistration, async (req, res) => {
   console.log("my request create",  req.body)
   const errors = validationResult(req);

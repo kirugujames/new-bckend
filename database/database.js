@@ -5,7 +5,7 @@ dotenv.config();
 
 const DB_NAME = process.env.MYSQL_DB || "sfu";
 const DB_USER = process.env.MYSQL_USER || "root";
-const DB_PASS = process.env.MYSQL_PASSWORD || "";
+const DB_PASS = process.env.MYSQL_PASSWORD || "maina@254";
 const DB_HOST = process.env.MYSQL_HOST || "localhost";
 const DB_PORT = process.env.MYSQL_PORT || 3307;
 

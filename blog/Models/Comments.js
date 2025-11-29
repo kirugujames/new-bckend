@@ -17,6 +17,10 @@ const Comment = sequelize.define("Comment", {
     },
     onDelete: "CASCADE"
   },
+  commenter_name: {
+    type: DataTypes.TEXT,
+    allowNull: false
+  },
   message: {
     type: DataTypes.TEXT,
     allowNull: false

@@ -11,7 +11,11 @@ import {
   deleteBlog,
   getCommentById,
   getCommentByBlogId,
-  getAllComments
+  getAllComments,
+  addBlogCategory,
+  getAllBlogCategory,
+  getAllBlogByCategory,
+  getMainBlog
 } from "../blog/bog-controller.js";
 import { verifyToken } from "../utils/jwtInterceptor.js";
 
@@ -27,8 +31,10 @@ const validateBlog = [
 ];
 
 const validateComment = [
-  body("blog_id").notEmpty().withMessage("Title is required"),
-  body("message").notEmpty().withMessage("Category is required"),
+  body("blog_id").notEmpty().withMessage("Comment id is required"),
+  body("commenter_name").notEmpty().withMessage("commenter name is required"),
+  body("email").notEmpty().withMessage(" email is required"),
+  body("message").notEmpty().withMessage("message is required"),
 ];
 
 
@@ -65,6 +71,9 @@ const validateComment = [
  *               image:
  *                 type: string
  *                 example: "ai-journalism.jpg"
+ *               isMain:
+ *                  type: character
+ *                  example: 'Y'
  *     responses:
  *       200:
  *         description: Blog post created successfully
@@ -87,6 +96,63 @@ router.post("/add", verifyToken, validateBlog, async (req, res) => {
     return res.status(400).json({ errors: errors.array(), statusCode: 400 });
   }
   const response = await createBlog(req);
+  return res.send(response);
+});
+
+
+/**
+ * @swagger
+ * /api/blog/getMainBlog:
+ *   get:
+ *     summary: Get main blog posts
+ *     description: Returns blog articles filtered by the `isMain` flag.
+ *     tags: [Blog]
+ *     parameters:
+ *       - in: query
+ *         name: isMain
+ *         schema:
+ *           type: string
+ *           example: "Y"
+ *         required: false
+ *         description: Flag to filter main blog posts. (Y/N)
+ *     responses:
+ *       200:
+ *         description: Successfully returned blog data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   title:
+ *                     type: string
+ *                     example: "The Role of Youth in Shaping Kenya’s Political Future"
+ *                   category:
+ *                     type: string
+ *                     example: "Politics"
+ *                   posted_by:
+ *                     type: string
+ *                     example: "James Maina"
+ *                   posted_date:
+ *                     type: string
+ *                     format: date-time
+ *                     example: "2025-11-06T20:45:32Z"
+ *                   content:
+ *                     type: string
+ *                     example: "Kenya's young population holds the key to the nation's democratic transformation."
+ *                   image:
+ *                     type: string
+ *                     example: "youth-politics-kenya.jpg"
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/getMainBlog", async (req, res) => {
+  const {isMain} = req.query;
+  const response = await getMainBlog(isMain);
   return res.send(response);
 });
 
@@ -309,6 +375,8 @@ router.patch("/update", validateBlog, async (req, res) => {
  *             required:
  *               - blog_id
  *               - message
+ *               - email
+ *               - commenter_name
  *             properties:
  *               blog_id:
  *                 type: integer
@@ -316,6 +384,12 @@ router.patch("/update", validateBlog, async (req, res) => {
  *               message:
  *                 type: string
  *                 example: Great post! I really enjoyed reading this.
+ *               email:
+ *                 type: string
+ *                 example: i@gmail.com
+ *               commenter_name:
+ *                 type: string
+ *                 example: John S
  *     responses:
  *       200:
  *         description: Comment added successfully
@@ -362,6 +436,7 @@ router.patch("/update", validateBlog, async (req, res) => {
  *                   type: integer
  *                   example: 500
  */
+
 router.post("/comment", validateComment, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -369,6 +444,216 @@ router.post("/comment", validateComment, async (req, res) => {
   }
   const response = await commentOnBlog(req);
   return res.send(response);
+});
+
+/**
+ * @swagger
+ * /api/blog/add/create/blogCategory:
+ *   post:
+ *     summary: Create a new blog category
+ *     tags: [Blog]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - category
+ *             properties:
+ *               category:
+ *                 type: string
+ *                 example: Technology
+ *     responses:
+ *       200:
+ *         description: Blog category created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Blog category added successfully
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Validation error — Invalid or missing fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       msg:
+ *                         type: string
+ *                         example: Category field is required
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 500
+ */
+router.post("/add/create/blogCategory", verifyToken, async (req, res) => {
+  const response = await addBlogCategory(req);
+  return res.send(response);
+});
+/**
+ * @swagger
+ * /api/blog/get/all/blogCategory:
+ *   get:
+ *     summary: Retrieve all blog categories
+ *     tags: [Blog]
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved all blog categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Blog categories fetched successfully
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       category:
+ *                         type: string
+ *                         example: Technology
+ *                       createdAt:
+ *                         type: string
+ *                         example: 2025-01-01T12:00:00Z
+ *                       updatedAt:
+ *                         type: string
+ *                         example: 2025-01-01T12:00:00Z
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 500
+ */
+router.get("/get/all/blogCategory", async (req, res) => {
+    const response = await getAllBlogCategory();
+    return res.send(response);
+});
+
+
+/**
+ * @swagger
+ * /api/blog/get/all/blog/by/category:
+ *   get:
+ *     summary: Retrieve all blogs by category
+ *     tags: [Blog]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The category to filter blogs by
+ *         example: Technology
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved blogs for the given category
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Blogs fetched successfully for the category
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       title:
+ *                         type: string
+ *                         example: Latest Tech Trends
+ *                       content:
+ *                         type: string
+ *                         example: This is a detailed blog post about technology...
+ *                       category:
+ *                         type: string
+ *                         example: Technology
+ *                       createdAt:
+ *                         type: string
+ *                         example: 2025-01-01T12:00:00Z
+ *                       updatedAt:
+ *                         type: string
+ *                         example: 2025-01-01T12:00:00Z
+ *       400:
+ *         description: Missing or invalid category parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Category query parameter is required
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Internal server error
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 500
+ */
+router.get("/get/all/blog/by/category", async (req, res) => {
+    const response = await getAllBlogByCategory(req);
+    return res.send(response);
 });
 
 /**
@@ -676,6 +961,8 @@ router.get("/all/comments", async (req, res) => {
   const result = await getAllComments();
   return res.send(result);
 });
+
+
 
 
 

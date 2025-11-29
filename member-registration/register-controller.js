@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import MemberRegistration from "./models/memberRegistration.js";
-import { registerUser } from "../auth/auth-controller.js";
+import {registerUserAsMember } from "../auth/auth-controller.js";
+import { randomBytes } from "crypto";
 
 dotenv.config();
 
@@ -16,15 +17,16 @@ export async function registerMember(req) {
     gender,
     phone,
     idNo,
-    constituency,
+    Constituency,
     ward,
     county,
     area_of_interest,
     doc_type,
     username,
-    password,
     role_id,
   } = req.body;
+
+  const password = generateStrongTempPassword();
 
   try {
     // Check for duplicates
@@ -73,7 +75,7 @@ export async function registerMember(req) {
       gender,
       phone,
       idNo,
-      constituency,
+      constituency:Constituency,
       ward,
       county,
       area_of_interest,
@@ -82,9 +84,7 @@ export async function registerMember(req) {
     });
 
     // Create user login account too
-    const authResponse = await registerUser({
-      body: { username, password, role_id, email },
-    });
+    const authResponse = await registerUserAsMember(member_code, password, role_id, email );
 
     console.log("User registration response:", authResponse);
 
@@ -175,6 +175,7 @@ export async function deleteMember(id) {
       statusCode: 200,
     };
   } catch (error) {
+    console.log(error)
     return {
       message: error.message,
       data: null,
@@ -241,8 +242,8 @@ export async function updateMember(req) {
 }
 
 function generateStrongTempPassword() {
-  return crypto.randomBytes(6)
+  return randomBytes(6)
     .toString("base64")
-    .replace(/[^a-zA-Z0-9]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, "")
     .slice(0, 10);
 }

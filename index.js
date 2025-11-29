@@ -19,7 +19,7 @@ app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 app.use(cors());
 
-startSessionCleaner();
+// startSessionCleaner();
 
 // Load environment variables
 const PORT = process.env.PORT || 3000;
