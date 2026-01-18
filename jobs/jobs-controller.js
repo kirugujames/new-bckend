@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import Job from "./Models/Job.js";
+import JobApplication from "./Models/JobApplication.js";
 dotenv.config();
 
 // create job
@@ -30,9 +31,16 @@ export async function createJob(req) {
 }
 
 // get all jobs
-export async function getAllJobs() {
+export async function getAllJobs(req) {
   try {
-    const jobs = await Job.findAll();
+    const { active } = req.query;
+    const where = {};
+    if (active === "true") {
+      where.status = "Active";
+    } else if (active === "false") {
+      where.status = "Inactive";
+    }
+    const jobs = await Job.findAll({ where });
     return {
       message: "jobs retrieved successfully",
       data: jobs,
@@ -127,6 +135,127 @@ export async function updateJobListing(req) {
     console.error("Update job error:", error);
     return {
       message: "failed to update job listing",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+
+// Apply for a job
+export async function applyForJob(req) {
+  try {
+    const { job_id, fullname, email, phone, document, cover_letter } = req.body;
+
+    const job = await Job.findByPk(job_id);
+    if (!job) {
+      return {
+        message: "Job listing not found",
+        statusCode: 404,
+        data: null,
+      };
+    }
+
+    const application = await JobApplication.create({
+      job_id,
+      fullname,
+      email,
+      phone,
+      document,
+      cover_letter,
+      status: "Pending",
+    });
+
+    return {
+      message: "Application submitted successfully",
+      statusCode: 201,
+      data: application,
+    };
+  } catch (error) {
+    console.error("Apply for job error:", error);
+    return {
+      message: error.message || "Failed to submit application",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+
+// Update application status
+export async function updateJobApplicationStatus(req) {
+  try {
+    const { id, status } = req.body;
+
+    const validStatuses = ["Pending", "Reviewed", "Shortlisted", "Rejected", "Accepted"];
+    if (!validStatuses.includes(status)) {
+      return {
+        message: "Invalid status value",
+        statusCode: 400,
+        data: null,
+      };
+    }
+
+    const application = await JobApplication.findByPk(id);
+    if (!application) {
+      return {
+        message: "Application not found",
+        statusCode: 404,
+        data: null,
+      };
+    }
+
+    await application.update({ status });
+
+    return {
+      message: `Application status updated to ${status} successfully`,
+      statusCode: 200,
+      data: application,
+    };
+  } catch (error) {
+    console.error("Update application status error:", error);
+    return {
+      message: error.message || "Internal server error",
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+
+// Get all applications
+export async function getAllJobApplications() {
+  try {
+    const applications = await JobApplication.findAll({
+      include: [{ model: Job, attributes: ["job_title"] }],
+    });
+    return {
+      message: "Job applications fetched successfully",
+      statusCode: 200,
+      data: applications,
+    };
+  } catch (error) {
+    console.error("Get all job applications error:", error);
+    return {
+      message: error.message,
+      statusCode: 500,
+      data: null,
+    };
+  }
+}
+
+// Get applications for a specific job
+export async function getApplicationsByJob(jobId) {
+  try {
+    const applications = await JobApplication.findAll({
+      where: { job_id: jobId },
+    });
+    return {
+      message: "Job applications fetched successfully",
+      statusCode: 200,
+      data: applications,
+    };
+  } catch (error) {
+    console.error("Get applications by job error:", error);
+    return {
+      message: error.message,
       statusCode: 500,
       data: null,
     };

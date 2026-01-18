@@ -9,7 +9,7 @@ const Volunteer = sequelize.define(
             primaryKey: true,
             autoIncrement: true,
         },
-        name: {
+        fullName: {
             type: DataTypes.STRING,
             allowNull: false,
         },
@@ -21,7 +21,7 @@ const Volunteer = sequelize.define(
             type: DataTypes.STRING,
             allowNull: false,
         },
-        type: {
+        volunteerType: {
             type: DataTypes.ENUM("general", "event"),
             defaultValue: "general",
         },
@@ -29,9 +29,14 @@ const Volunteer = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: true,
         },
-        interests: {
+        areasOfInterest: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+        consent: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
         },
         status: {
             type: DataTypes.ENUM("pending", "approved", "rejected"),

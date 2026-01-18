@@ -19,6 +19,7 @@ import Volunteer from "./volunteer/Models/Volunteer.js";
 import ContactUs from "./contact-us/Models/ContactUs.js";
 import MemberRegistration from "./member-registration/models/memberRegistration.js";
 import Job from "./jobs/Models/Job.js";
+import JobApplication from "./jobs/Models/JobApplication.js";
 import Event from "./events/Models/Event.js";
 import MpesaPayment from "./mpesa/Models/MpesaPayment.js";
 import County from "./locations/Models/County.js";
@@ -31,6 +32,7 @@ import registerRouter from './member-registration/registeration-router.js';
 import blogRouter from './blog/blog-router.js';
 import jobRouter from "./jobs/job-router.js";
 import eventRouter from "./events/events-router.js";
+import aspirantRouter from "./aspirants/aspirant-router.js";
 import donationRouter from "./donations/donation-router.js";
 import merchRouter from "./merchandise/merchandise-router.js";
 import politicalRouter from "./political-position/political-app-router.js";
@@ -39,6 +41,7 @@ import contactRouter from "./contact-us/contact-us-router.js";
 import auditRouter from "./audit-trails/audit-trail-router.js";
 import mpesaRouter from "./mpesa/mpesa-router.js";
 import locationRouter from "./locations/location-router.js";
+import partyPositionRouter from "./party-positions/party-position-router.js";
 
 
 dotenv.config();
@@ -90,6 +93,7 @@ export const swaggerOptions = {
     "./events/*.js",
     "./jobs/*.js",
     "./member-registration/*.js",
+    "./aspirants/*.js",
     "./donations/*.js",
     "./political-position/*.js",
     "./volunteer/*.js",
@@ -98,6 +102,7 @@ export const swaggerOptions = {
     "./mpesa/*.js",
     "./locations/*.js",
     "./merchandise/*.js",
+    "./party-positions/*.js",
   ],
 };
 
@@ -115,6 +120,9 @@ Event.hasMany(Volunteer, { foreignKey: "event_id" });
 Volunteer.belongsTo(Event, { foreignKey: "event_id" });
 
 MemberRegistration.hasMany(Donation, { foreignKey: "member_id" });
+
+Job.hasMany(JobApplication, { foreignKey: "job_id", onDelete: "CASCADE" });
+JobApplication.belongsTo(Job, { foreignKey: "job_id" });
 
 // Location relationships
 County.hasMany(Subcounty, { foreignKey: "county_id", onDelete: "CASCADE" });
@@ -144,6 +152,7 @@ app.use((err, req, res, next) => {
     app.use('/api/blog', blogRouter);
     app.use("/api/jobs", jobRouter);
     app.use("/api/events", eventRouter);
+    app.use("/api/aspirants", aspirantRouter);
     app.use("/api/donations", donationRouter);
     app.use("/api/merchandise", merchRouter);
     app.use("/api/political-applications", politicalRouter);
@@ -152,6 +161,7 @@ app.use((err, req, res, next) => {
     app.use("/api/audit", auditRouter);
     app.use("/api/mpesa", mpesaRouter);
     app.use("/api/locations", locationRouter);
+    app.use("/api/party-positions", partyPositionRouter);
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -161,3 +171,5 @@ app.use((err, req, res, next) => {
     console.error("Failed to initialize database:", err.message);
   }
 })();
+
+

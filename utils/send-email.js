@@ -1,5 +1,7 @@
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -31,12 +33,31 @@ export async function sendEmail(req) {
   }
 
   try {
+    let emailHtml = `<p>${req.message}</p>`;
+
+    // Try to load template if it exists
+    try {
+      const templatePath = path.join(process.cwd(), 'templates', 'general-email-template.html');
+      let template = fs.readFileSync(templatePath, 'utf8');
+
+      // Replace placeholders
+      const title = req.title || "Notification"; // Default title if not provided
+      const bodyContent = req.htmlBody || `<p>${req.message}</p>`; // Use HTML body if provided, else wrap message in p
+
+      template = template.replace('{{TITLE}}', title);
+      template = template.replace('{{BODY_CONTENT}}', bodyContent);
+
+      emailHtml = template;
+    } catch (templateErr) {
+      console.warn("Could not load email template, falling back to simple HTML:", templateErr.message);
+    }
+
     const info = await transporter.sendMail({
       from: process.env.FROM_EMAIL || process.env.SMTP_USER,
       to: req.to,
       subject: req.subject,
       text: req.message,
-      html: `<p>${req.message}</p>`,
+      html: emailHtml,
     });
 
     console.log("Email sent:", info.response);

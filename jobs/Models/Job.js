@@ -22,8 +22,8 @@ const Job = sequelize.define(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("active", "passed"),
-      defaultValue: "active",
+      type: DataTypes.ENUM("Active", "Inactive"),
+      defaultValue: "Active",
     },
   },
   {

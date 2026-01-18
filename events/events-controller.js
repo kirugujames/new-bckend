@@ -142,9 +142,20 @@ export async function updateEvent(req) {
 //book event
 export async function bookAnEvent(req) {
     try {
-        const { event_id, member_code } = req.body
+        const { event_id, first_name, last_name, email, phone, payment_method } = req.body
+
+        // Check if event exists
+        const event = await Events.findByPk(event_id);
+        if (!event) {
+            return {
+                message: "Event not found",
+                statusCode: 404,
+                data: null
+            }
+        }
+
         const result = await Event_Booking.create({
-            event_id, member_code
+            event_id, first_name, last_name, email, phone, payment_method
         })
         return {
             message: "Event booking was successful",
@@ -163,7 +174,7 @@ export async function bookAnEvent(req) {
 //update event booking
 export async function updateAnEvent(req) {
     try {
-        const { id, event_id, member_code } = req.body
+        const { id, event_id, first_name, last_name, email, phone, payment_method } = req.body
         const event_booking = await Event_Booking.findByPk(id);
         if (!event_booking) {
             return {
@@ -172,8 +183,8 @@ export async function updateAnEvent(req) {
                 data: event_booking
             }
         }
-        const result = await Event_Booking.update({
-            event_id, member_code
+        const result = await event_booking.update({
+            event_id, first_name, last_name, email, phone, payment_method
         })
         return {
             message: "Event booking was updated successful",
@@ -193,11 +204,27 @@ export async function updateAnEvent(req) {
 //get all  events booking
 export async function getAllBookedEvents() {
     try {
-        const results = await Event_Booking.findAll()
+        const results = await Event_Booking.findAll({
+            include: [{
+                model: Events,
+                attributes: ['title']
+            }]
+        })
+
+        const formattedResults = results.map(booking => {
+            const bookingData = booking.toJSON();
+            const event_name = bookingData.Event?.title || null;
+            delete bookingData.Event; // Remove the nested Event object if preferred
+            return {
+                ...bookingData,
+                event_name
+            };
+        });
+
         return {
             message: "events booking fetched successfully",
             statusCode: 200,
-            data: results
+            data: formattedResults
         }
     } catch (error) {
         return {
@@ -245,23 +272,7 @@ export async function getEventBookingByEventId(event_id) {
     }
 }
 
-//get event booking by member_code
-export async function getEventBookingByMemberCode(member_code) {
-    try {
-        const result = await Event_Booking.findAll({ where: { member_code } })
-        return {
-            message: "event booking fetched successfully",
-            statusCode: 200,
-            data: result
-        }
-    } catch (error) {
-        return {
-            message: error.message.split(":")[0],
-            statusCode: 500,
-            data: null
-        }
-    }
-}
+
 
 // Get events for landing page (latest 3)
 export async function getLandingEvents() {

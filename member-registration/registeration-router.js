@@ -27,10 +27,13 @@ const validateRegistration = [
   body("Constituency").notEmpty().withMessage("Constituency is required"),
   body("ward").notEmpty().withMessage("Ward is required"),
   body("county").notEmpty().withMessage("County is required"),
-  body("area_of_interest").notEmpty().withMessage("Area of interest is required"),
+  body("area_of_interest").optional(),
+  body("membershipStatus").optional(),
+  body("verificationMethod").optional(),
 ];
 
 const validateUpdate = [
+  body("id").notEmpty().withMessage("ID is required"),
   body("first_name").optional(),
   body("last_name").optional(),
   body("email").optional().isEmail().withMessage("Valid email is required"),
@@ -42,6 +45,26 @@ const validateUpdate = [
   body("ward").optional(),
   body("county").optional(),
   body("area_of_interest").optional(),
+  body("religion").optional(),
+  body("ethnicity").optional(),
+  body("postalAddress").optional(),
+  body("postalCode").optional(),
+  body("isPWD").optional(),
+  body("ncpwdNumber").optional(),
+  body("pollingStation").optional(),
+  body("streetVillage").optional(),
+  body("membershipStatus").optional(),
+  body("specialInterest").optional(),
+  body("membershipNumber").optional(),
+  body("localLeader").optional(),
+  body("verificationCode").optional(),
+  body("politicalDeclaration").optional(),
+  body("termsConsent").optional(),
+  body("verificationMethod").optional(),
+  body("membershipType").optional(),
+  body("paymentMethod").optional(),
+  body("paymentPhoneNumber").optional(),
+  body("amount").optional(),
 ];
 
 /**
@@ -104,6 +127,55 @@ const validateUpdate = [
  *               area_of_interest:
  *                 type: string
  *                 example: Agriculture
+ *               religion:
+ *                 type: string
+ *                 example: Christianity
+ *               ethnicity:
+ *                 type: string
+ *                 example: Kikuyu
+ *               postalAddress:
+ *                 type: string
+ *                 example: "P.O. Box 123"
+ *               postalCode:
+ *                 type: string
+ *                 example: "00100"
+ *               isPWD:
+ *                 type: boolean
+ *                 example: false
+ *               ncpwdNumber:
+ *                 type: string
+ *               pollingStation:
+ *                 type: string
+ *               streetVillage:
+ *                 type: string
+ *               membershipStatus:
+ *                 type: string
+ *                 example: new
+ *               specialInterest:
+ *                 type: string
+ *               membershipNumber:
+ *                 type: string
+ *               localLeader:
+ *                 type: string
+ *               verificationCode:
+ *                 type: string
+ *               politicalDeclaration:
+ *                 type: boolean
+ *                 example: true
+ *               termsConsent:
+ *                 type: boolean
+ *                 example: true
+ *               verificationMethod:
+ *                 type: string
+ *                 example: email
+ *               membershipType:
+ *                 type: string
+ *               paymentMethod:
+ *                 type: string
+ *               paymentPhoneNumber:
+ *                 type: string
+ *               amount:
+ *                 type: number
  *               username:
  *                 type: string
  *                 example: johndoe

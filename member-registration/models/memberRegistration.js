@@ -70,9 +70,88 @@ const MemberRegistration = sequelize.define(
 
     area_of_interest: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
-
+    religion: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    ethnicity: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    postalAddress: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    postalCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    isPWD: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    ncpwdNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    pollingStation: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    streetVillage: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    membershipStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    specialInterest: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    membershipNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    localLeader: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    verificationCode: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    politicalDeclaration: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    termsConsent: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    verificationMethod: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    membershipType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    paymentMethod: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    paymentPhoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
     member_code: {
       type: DataTypes.STRING,
       allowNull: false,

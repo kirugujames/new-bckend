@@ -29,6 +29,9 @@ const router = express.Router();
  *               email:
  *                 type: string
  *                 example: "john@example.com"
+ *               subject:
+ *                 type: string
+ *                 example: "Inquiry"
  *               message:
  *                 type: string
  *                 example: "I would like more information about your services."

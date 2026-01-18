@@ -14,7 +14,6 @@ import {
   getAllEvents, getEventById,
   updateAnEvent, updateEvent,
   getEventBookingByEventId,
-  getEventBookingByMemberCode,
   getEventBookingById,
   getLandingEvents
 } from "./events-controller.js";
@@ -354,13 +353,21 @@ router.patch("/update", verifyToken, auditMiddleware("EVENT_UPDATE"), async (req
   return res.status(result.statusCode).json(result);
 });
 
+const validateEventBooking = [
+  body("event_id").notEmpty().withMessage("Event ID is required").isNumeric().withMessage("Event ID must be a number"),
+  body("first_name").notEmpty().withMessage("First name is required"),
+  body("last_name").notEmpty().withMessage("Last name is required"),
+  body("email").notEmpty().withMessage("Email is required").isEmail().withMessage("Invalid email format"),
+  body("phone").notEmpty().withMessage("Phone number is required"),
+];
+
 /**
  * @swagger
  * /api/events/book-event:
  *   post:
  *     summary: Book an event
  *     tags: [Events]
- *     description: Allows a user to book an event by providing event and member details.
+ *     description: Allows a user to book an event by providing event and contact details.
  *     requestBody:
  *       required: true
  *       content:
@@ -369,16 +376,31 @@ router.patch("/update", verifyToken, auditMiddleware("EVENT_UPDATE"), async (req
  *             type: object
  *             required:
  *               - event_id
- *               - member_code
+ *               - first_name
+ *               - last_name
+ *               - email
+ *               - phone
  *             properties:
  *               event_id:
- *                 type: integer
- *                 description: The unique ID of the event to be booked.
- *                 example: 3
- *               member_code:
  *                 type: string
- *                 description: The ID of the member booking the event.
- *                 example: MBR12345
+ *                 description: The unique ID of the event to be booked.
+ *                 example: "2"
+ *               first_name:
+ *                 type: string
+ *                 example: "James"
+ *               last_name:
+ *                 type: string
+ *                 example: "Maina"
+ *               email:
+ *                 type: string
+ *                 example: "kirugjames@gmail.com"
+ *               phone:
+ *                 type: string
+ *                 example: "0796598108"
+ *               payment_method:
+ *                 type: string
+ *                 nullable: true
+ *                 example: null
  *     responses:
  *       200:
  *         description: Event booked successfully.
@@ -395,9 +417,15 @@ router.patch("/update", verifyToken, auditMiddleware("EVENT_UPDATE"), async (req
  *       500:
  *         description: Server error while booking the event.
  */
-router.post("/book-event", auditMiddleware("EVENT_BOOKING"), async (req, res) => {
+router.post("/book-event", validateEventBooking, auditMiddleware("EVENT_BOOKING"), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res
+      .status(400)
+      .json({ message: "Validation errors", statusCode: 400, data: errors.array() });
+  }
   const result = await bookAnEvent(req);
-  return res.send(result);
+  return res.status(result.statusCode || 200).send(result);
 });
 
 /**
@@ -416,20 +444,35 @@ router.post("/book-event", auditMiddleware("EVENT_BOOKING"), async (req, res) =>
  *             required:
  *               - id
  *               - event_id
- *               - member_code
+ *               - first_name
+ *               - last_name
+ *               - email
+ *               - phone
  *             properties:
  *               id:
  *                 type: integer
  *                 description: The unique ID of the booking record to update.
  *                 example: 12
  *               event_id:
- *                 type: integer
- *                 description: The ID of the event associated with this booking.
- *                 example: 5
- *               member_code:
  *                 type: string
- *                 description: The code identifying the member who booked the event.
- *                 example: MBR12345
+ *                 description: The ID of the event associated with this booking.
+ *                 example: "2"
+ *               first_name:
+ *                 type: string
+ *                 example: "James"
+ *               last_name:
+ *                 type: string
+ *                 example: "Maina"
+ *               email:
+ *                 type: string
+ *                 example: "kirugjames@gmail.com"
+ *               phone:
+ *                 type: string
+ *                 example: "0796598108"
+ *               payment_method:
+ *                 type: string
+ *                 nullable: true
+ *                 example: null
  *     responses:
  *       200:
  *         description: Booking updated successfully.
@@ -451,9 +494,15 @@ router.post("/book-event", auditMiddleware("EVENT_BOOKING"), async (req, res) =>
  *       500:
  *         description: Server error while updating the booking.
  */
-router.patch("/booking-event/update", auditMiddleware("EVENT_BOOKING_UPDATE"), async (req, res) => {
+router.patch("/booking-event/update", validateEventBooking, auditMiddleware("EVENT_BOOKING_UPDATE"), async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res
+      .status(400)
+      .json({ message: "Validation errors", statusCode: 400, data: errors.array() });
+  }
   const result = await updateAnEvent(req);
-  return res.send(result);
+  return res.status(result.statusCode || 200).send(result);
 });
 
 /**
@@ -462,7 +511,7 @@ router.patch("/booking-event/update", auditMiddleware("EVENT_BOOKING_UPDATE"), a
  *   get:
  *     summary: Retrieve all booked events
  *     tags: [Events]
- *     description: Fetch a list of all events that have been booked, including details such as the event ID, member code, and booking status.
+ *     description: Fetch a list of all events that have been booked.
  *     responses:
  *       200:
  *         description: Successfully retrieved the list of all booked events.
@@ -481,10 +530,22 @@ router.patch("/booking-event/update", auditMiddleware("EVENT_BOOKING_UPDATE"), a
  *                     type: integer
  *                     description: The ID of the event that was booked.
  *                     example: 5
- *                   member_code:
+ *                   event_name:
  *                     type: string
- *                     description: The code of the member who booked the event.
- *                     example: MBR12345
+ *                     description: The title of the booked event.
+ *                     example: "AI Innovations Summit 2025"
+ *                   first_name:
+ *                     type: string
+ *                     example: James
+ *                   last_name:
+ *                     type: string
+ *                     example: Maina
+ *                   email:
+ *                     type: string
+ *                     example: kirugjames@gmail.com
+ *                   phone:
+ *                     type: string
+ *                     example: "0796598108"
  *                   booking_status:
  *                     type: string
  *                     description: The current status of the booking.
@@ -537,10 +598,18 @@ router.get("/book-event/all", async (req, res) => {
  *                     type: integer
  *                     description: The ID of the booked event.
  *                     example: 3
- *                   member_code:
+ *                   first_name:
  *                     type: string
- *                     description: The member code of the person who booked the event.
- *                     example: MBR2025
+ *                     example: James
+ *                   last_name:
+ *                     type: string
+ *                     example: Maina
+ *                   email:
+ *                     type: string
+ *                     example: kirugjames@gmail.com
+ *                   phone:
+ *                     type: string
+ *                     example: "0796598108"
  *                   booking_status:
  *                     type: string
  *                     description: The status of the booking.
@@ -563,72 +632,6 @@ router.get("/booked-event/get-by-event-id/:event_id", async (req, res) => {
     return res.send({ message: "event id is required", statusCode: 400 });
   }
   const result = await getEventBookingByEventId(event_id);
-  return res.send(result);
-});
-
-/**
- * @swagger
- * /api/events/booked-event/get-by-member-code/{member_code}:
- *   get:
- *     summary: Get all events booked by a specific member
- *     tags: [Events]
- *     description: Retrieve all booked events associated with a particular member using their unique member code.
- *     parameters:
- *       - in: path
- *         name: member_code
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique code assigned to a registered member.
- *         example: MBR2025
- *     responses:
- *       200:
- *         description: Successfully retrieved all bookings made by the specified member.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   booking_id:
- *                     type: integer
- *                     description: Unique identifier of the booking.
- *                     example: 15
- *                   event_id:
- *                     type: integer
- *                     description: ID of the booked event.
- *                     example: 7
- *                   member_code:
- *                     type: string
- *                     description: The code of the member who booked the event.
- *                     example: MBR2025
- *                   event_title:
- *                     type: string
- *                     description: Title of the event.
- *                     example: AI Innovations Summit 2025
- *                   booking_status:
- *                     type: string
- *                     description: Current booking status.
- *                     example: Confirmed
- *                   booking_date:
- *                     type: string
- *                     format: date-time
- *                     description: The date and time the booking was made.
- *                     example: 2025-11-07T09:30:00Z
- *       400:
- *         description: Member code is missing in the request parameters.
- *       404:
- *         description: No bookings found for the given member code.
- *       500:
- *         description: Server error while retrieving member's event bookings.
- */
-router.get("/booked-event/get-by-member-code/:member_code", async (req, res) => {
-  const { member_code } = req.params;
-  if (!member_code) {
-    return res.send({ message: "member code is required", statusCode: 400 });
-  }
-  const result = await getEventBookingByMemberCode(member_code);
   return res.send(result);
 });
 
@@ -689,7 +692,6 @@ router.get("/booked-event/get-by-member-code/:member_code", async (req, res) => 
  */
 router.get("/booked-event/get-by-id/:id", async (req, res) => {
   const { id } = req.params;
-  console.log("my  idddd", id)
   if (!id) {
     return res.send({ message: "Id is required", statusCode: 400 });
   }

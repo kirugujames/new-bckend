@@ -6,6 +6,8 @@ import {
     bulkInsertCounties,
     bulkInsertSubcounties,
     bulkInsertWards,
+    getFullLocationsJson,
+    seedLocationsFromJson,
 } from "./location-controller.js";
 import { verifyToken } from "../utils/jwtInterceptor.js";
 import { auditMiddleware } from "../utils/audit-service.js";
@@ -272,6 +274,76 @@ router.post("/subcounties/bulk", verifyToken, auditMiddleware("LOCATION_SUBCOUNT
  */
 router.post("/wards/bulk", verifyToken, auditMiddleware("LOCATION_WARDS_BULK"), async (req, res) => {
     const result = await bulkInsertWards(req);
+    return res.status(result.statusCode).json(result);
+});
+
+/**
+ * @swagger
+ * /api/locations/full:
+ *   get:
+ *     summary: Get full Kenya locations hierarchy
+ *     description: Retrieve the complete nested JSON of Kenya locations
+ *     tags: [Locations]
+ *     responses:
+ *       200:
+ *         description: Full locations fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   description: Full JSON structure
+ *       500:
+ *         description: Server error
+ */
+router.get("/full", async (req, res) => {
+    const result = await getFullLocationsJson();
+    return res.status(result.statusCode).json(result);
+});
+
+/**
+ * @swagger
+ * /api/locations/seed:
+ *   post:
+ *     summary: Seed locations from JSON file
+ *     description: Admin endpoint to populate counties, subcounties, and wards from the local JSON file
+ *     tags: [Locations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Seeding completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 201
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     counties:
+ *                       type: integer
+ *                     subcounties:
+ *                       type: integer
+ *                     wards:
+ *                       type: integer
+ *       500:
+ *         description: Server error
+ */
+router.post("/seed", verifyToken, auditMiddleware("LOCATION_SEED"), async (req, res) => {
+    const result = await seedLocationsFromJson();
     return res.status(result.statusCode).json(result);
 });
 

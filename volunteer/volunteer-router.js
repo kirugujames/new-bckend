@@ -19,19 +19,34 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - fullName
  *               - email
- *               - event_id
+ *               - volunteerType
+ *               - phone
+ *               - consent
  *             properties:
- *               name:
+ *               fullName:
  *                 type: string
  *                 example: "Jane Doe"
  *               email:
  *                 type: string
  *                 example: "jane@example.com"
- *               event_id:
+ *               phone:
+ *                 type: string
+ *                 example: "0712345678"
+ *               volunteerType:
+ *                 type: string
+ *                 enum: [general, event]
+ *                 example: "event"
+ *               selected_event:
  *                 type: integer
  *                 example: 5
+ *               areasOfInterest:
+ *                 type: string
+ *                 example: "Logistics, Communication"
+ *               consent:
+ *                 type: boolean
+ *                 example: true
  *     responses:
  *       200:
  *         description: Volunteer signed up successfully

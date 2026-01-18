@@ -12,14 +12,25 @@ const Event_Booking = sequelize.define(
       allowNull: false,
       autoIncrement: true,
     },
-    member_code: {
+    first_name: {
       type: DataTypes.STRING,
       allowNull: false,
-      references: {
-        model: MemberRegistration,
-        key: "member_code",
-      },
-      onDelete: "CASCADE",
+    },
+    last_name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    phone: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    payment_method: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     event_id: {
       type: DataTypes.INTEGER,
@@ -39,11 +50,5 @@ const Event_Booking = sequelize.define(
 
 Events.hasMany(Event_Booking, { foreignKey: "event_id", onDelete: "CASCADE" });
 Event_Booking.belongsTo(Events, { foreignKey: "event_id" });
-
-MemberRegistration.hasMany(Event_Booking, {
-  foreignKey: "member_code",
-  onDelete: "CASCADE",
-});
-Event_Booking.belongsTo(MemberRegistration, { foreignKey: "member_code" });
 
 export default Event_Booking;

@@ -51,8 +51,15 @@ router.get("/all", async (req, res) => {
  *                 type: string
  *               price:
  *                 type: number
- *               image:
+ *               stock:
+ *                 type: integer
+ *               category:
  *                 type: string
+ *               size:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 example: ACTIVE
  *     responses:
  *       200:
  *         description: Merchandise added
@@ -86,6 +93,15 @@ router.post("/add", verifyToken, auditMiddleware("MERCH_ADD"), async (req, res) 
  *                 type: string
  *               price:
  *                 type: number
+ *               stock:
+ *                 type: integer
+ *               category:
+ *                 type: string
+ *               size:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 example: ACTIVE
  *     responses:
  *       200:
  *         description: Updated successfully

@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import MemberRegistration from "./models/memberRegistration.js";
 import { registerUserAsMember } from "../auth/auth-controller.js";
 import { randomBytes } from "crypto";
+import { sendEmail } from "../utils/send-email.js";
 
 dotenv.config();
 
@@ -25,80 +26,193 @@ export async function registerMember(req) {
     username,
     role_id,
     transaction_id,
+    religion,
+    ethnicity,
+    postalAddress,
+    postalCode,
+    isPWD,
+    ncpwdNumber,
+    pollingStation,
+    streetVillage,
+    membershipStatus,
+    specialInterest,
+    membershipNumber,
+    localLeader,
+    verificationCode,
+    politicalDeclaration,
+    termsConsent,
+    verificationMethod,
+    membershipType,
+    paymentMethod,
+    paymentPhoneNumber,
+    amount,
   } = req.body;
+
+  // Normalize boolean fields
+  const normalizedIsPWD = (isPWD === true || isPWD === "true" || isPWD === "yes");
+  const normalizedPoliticalDeclaration = (politicalDeclaration === true || politicalDeclaration === "true" || politicalDeclaration === "yes");
+  const normalizedTermsConsent = (termsConsent === true || termsConsent === "true" || termsConsent === "yes");
 
   const password = generateStrongTempPassword();
 
   try {
-    // Check for duplicates
-    const existing = await MemberRegistration.findOne({
-      where: {
-        email: email,
-      },
-    });
+    let member;
+    let member_code;
 
-    const phoneCheck = await MemberRegistration.findOne({ where: { phone } });
-    const idCheck = await MemberRegistration.findOne({ where: { idNo } });
+    if (membershipStatus === "returning") {
+      // Check if exists
+      member = await MemberRegistration.findOne({
+        where: {
+          [Symbol.for('or')]: [{ email }, { phone }, { idNo }],
+        },
+      });
 
-    if (existing) {
-      return {
-        message: "Email already registered",
-        data: null,
-        statusCode: 409,
-      };
+      if (!member) {
+        return {
+          message: "Returning member not found with provided email, phone, or ID",
+          data: null,
+          statusCode: 404,
+        };
+      }
+
+      // Update and change status to Active
+      await member.update({
+        first_name,
+        last_name,
+        email,
+        dob,
+        gender,
+        phone,
+        idNo,
+        constituency: Constituency,
+        ward,
+        county,
+        area_of_interest,
+        doc_type,
+        religion,
+        ethnicity,
+        postalAddress,
+        postalCode,
+        isPWD: normalizedIsPWD,
+        ncpwdNumber,
+        pollingStation,
+        streetVillage,
+        membershipStatus,
+        specialInterest,
+        membershipNumber,
+        localLeader,
+        verificationCode,
+        politicalDeclaration: normalizedPoliticalDeclaration,
+        termsConsent: normalizedTermsConsent,
+        verificationMethod,
+        membershipType,
+        paymentMethod,
+        paymentPhoneNumber,
+        amount,
+        transaction_id,
+        is_paid: transaction_id ? true : false,
+        status: "active",
+      });
+
+      member_code = member.member_code;
+    } else {
+      // "new" or default
+      // Check for duplicates
+      const existing = await MemberRegistration.findOne({
+        where: { email: email },
+      });
+
+      const phoneCheck = await MemberRegistration.findOne({ where: { phone } });
+      const idCheck = await MemberRegistration.findOne({ where: { idNo } });
+
+      if (existing) {
+        return {
+          message: "Email already registered",
+          data: null,
+          statusCode: 409,
+        };
+      }
+
+      if (phoneCheck) {
+        return {
+          message: "Phone number already registered",
+          data: null,
+          statusCode: 409,
+        };
+      }
+
+      if (idCheck) {
+        return {
+          message: "ID number already registered",
+          data: null,
+          statusCode: 409,
+        };
+      }
+
+      // Generate member code
+      member_code = generateMemberCode();
+
+      // Create member
+      member = await MemberRegistration.create({
+        first_name,
+        last_name,
+        email,
+        dob,
+        gender,
+        phone,
+        idNo,
+        constituency: Constituency,
+        ward,
+        county,
+        area_of_interest,
+        doc_type,
+        religion,
+        ethnicity,
+        postalAddress,
+        postalCode,
+        isPWD: normalizedIsPWD,
+        ncpwdNumber,
+        pollingStation,
+        streetVillage,
+        membershipStatus,
+        specialInterest,
+        membershipNumber,
+        localLeader,
+        verificationCode,
+        politicalDeclaration: normalizedPoliticalDeclaration,
+        termsConsent: normalizedTermsConsent,
+        verificationMethod,
+        membershipType,
+        paymentMethod,
+        paymentPhoneNumber,
+        amount,
+        member_code,
+        transaction_id,
+        is_paid: transaction_id ? true : false,
+        status: "active",
+      });
+
+      // Create user login account too
+      const authResponse = await registerUserAsMember(member_code, password, role_id, email);
+      console.log("User registration response:", authResponse);
     }
 
-    if (phoneCheck) {
-      return {
-        message: "Phone number already registered",
-        data: null,
-        statusCode: 409,
-      };
+    // Handle verification method
+    if (verificationMethod === "email") {
+      await sendEmail({
+        to: email,
+        subject: "Member Registration Successful",
+        message: `Welcome ${first_name}! Your member code is ${member_code}.`,
+      });
     }
-
-    if (idCheck) {
-      return {
-        message: "ID number already registered",
-        data: null,
-        statusCode: 409,
-      };
-    }
-
-    // Generate member code
-    const member_code = generateMemberCode();
-
-    // Create member
-    const member = await MemberRegistration.create({
-      first_name,
-      last_name,
-      email,
-      dob,
-      gender,
-      phone,
-      idNo,
-      constituency: Constituency,
-      ward,
-      county,
-      area_of_interest,
-      doc_type,
-      member_code,
-      transaction_id,
-      is_paid: transaction_id ? true : false,
-      status: "active",
-    });
-
-    // Create user login account too
-    const authResponse = await registerUserAsMember(member_code, password, role_id, email);
-
-    console.log("User registration response:", authResponse);
 
     return {
-      message: "Member registered successfully",
+      message: membershipStatus === "returning" ? "Member details updated and activated" : "Member registered successfully",
       data: {
         id: member.id,
         member_code,
       },
-      statusCode: 201,
+      statusCode: (membershipStatus === "returning") ? 200 : 201,
     };
   } catch (error) {
     console.error("Register Error:", error);
@@ -229,8 +343,32 @@ export async function updateMember(req) {
       county,
       area_of_interest,
       doc_type,
+      religion,
+      ethnicity,
+      postalAddress,
+      postalCode,
+      isPWD,
+      ncpwdNumber,
+      pollingStation,
+      streetVillage,
+      membershipStatus,
+      specialInterest,
+      membershipNumber,
+      localLeader,
+      verificationCode,
+      politicalDeclaration,
+      termsConsent,
+      verificationMethod,
+      membershipType,
+      paymentMethod,
+      paymentPhoneNumber,
+      amount,
       id,
     } = req.body;
+
+    const normalizedIsPWD = (isPWD === true || isPWD === "true" || isPWD === "yes");
+    const normalizedPoliticalDeclaration = (politicalDeclaration === true || politicalDeclaration === "true" || politicalDeclaration === "yes");
+    const normalizedTermsConsent = (termsConsent === true || termsConsent === "true" || termsConsent === "yes");
 
     const member = await MemberRegistration.findByPk(id);
     if (!member) {
@@ -253,6 +391,26 @@ export async function updateMember(req) {
       county,
       area_of_interest,
       doc_type,
+      religion,
+      ethnicity,
+      postalAddress,
+      postalCode,
+      isPWD: normalizedIsPWD,
+      ncpwdNumber,
+      pollingStation,
+      streetVillage,
+      membershipStatus,
+      specialInterest,
+      membershipNumber,
+      localLeader,
+      verificationCode,
+      politicalDeclaration: normalizedPoliticalDeclaration,
+      termsConsent: normalizedTermsConsent,
+      verificationMethod,
+      membershipType,
+      paymentMethod,
+      paymentPhoneNumber,
+      amount,
     });
 
     return {

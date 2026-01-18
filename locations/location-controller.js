@@ -1,6 +1,9 @@
 import County from "./Models/County.js";
 import Subcounty from "./Models/Subcounty.js";
 import Ward from "./Models/Ward.js";
+import fs from "fs";
+import path from "path";
+import sequelize from "../database/database.js";
 
 /**
  * Get all counties
@@ -211,6 +214,130 @@ export async function bulkInsertWards(req) {
         return {
             statusCode: 500,
             message: error.message || "Failed to insert wards",
+            data: null,
+        };
+    }
+}
+
+/**
+ * Get full Kenya locations JSON
+ * @returns {Object} Response object
+ */
+export async function getFullLocationsJson() {
+    try {
+        const filePath = path.join(process.cwd(), "locations", "data", "kenya-locations-full.json");
+
+        if (!fs.existsSync(filePath)) {
+            return {
+                statusCode: 404,
+                message: "Locations data file not found",
+                data: null,
+            };
+        }
+
+        const data = fs.readFileSync(filePath, "utf8");
+        const jsonData = JSON.parse(data);
+
+        return {
+            statusCode: 200,
+            message: "Full locations fetched successfully",
+            data: jsonData,
+        };
+    } catch (error) {
+        console.error("Error fetching full locations:", error);
+        return {
+            statusCode: 500,
+            message: "Failed to fetch full locations",
+            data: null,
+        };
+    }
+}
+
+/**
+ * Seed locations from JSON file
+ * @returns {Object} Response object
+ */
+export async function seedLocationsFromJson() {
+    const t = await sequelize.transaction();
+    try {
+        const filePath = path.join(process.cwd(), "locations", "data", "kenya-locations-full.json");
+
+        if (!fs.existsSync(filePath)) {
+            await t.rollback();
+            return {
+                statusCode: 404,
+                message: "Locations data file not found",
+                data: null,
+            };
+        }
+
+        const data = fs.readFileSync(filePath, "utf8");
+        const countiesData = JSON.parse(data);
+
+        let stats = {
+            counties: 0,
+            subcounties: 0,
+            wards: 0
+        };
+
+        for (const item of countiesData) {
+            // Find or create county
+            const [county, created] = await County.findOrCreate({
+                where: { code: String(item.county_code) },
+                defaults: {
+                    name: item.county_name,
+                    code: String(item.county_code)
+                },
+                transaction: t
+            });
+            if (created) stats.counties++;
+
+            for (const constituency of item.constituencies) {
+                // Find or create subcounty
+                const [subcounty, subCreated] = await Subcounty.findOrCreate({
+                    where: {
+                        name: constituency.constituency_name,
+                        county_id: county.id
+                    },
+                    defaults: {
+                        name: constituency.constituency_name,
+                        county_id: county.id
+                    },
+                    transaction: t
+                });
+                if (subCreated) stats.subcounties++;
+
+                // Prepare wards data
+                for (const wardName of constituency.wards) {
+                    const [ward, wardCreated] = await Ward.findOrCreate({
+                        where: {
+                            name: wardName.trim(),
+                            subcounty_id: subcounty.id
+                        },
+                        defaults: {
+                            name: wardName.trim(),
+                            subcounty_id: subcounty.id
+                        },
+                        transaction: t
+                    });
+                    if (wardCreated) stats.wards++;
+                }
+            }
+        }
+
+        await t.commit();
+
+        return {
+            statusCode: 201,
+            message: `Seeding completed successfully. Added: ${stats.counties} counties, ${stats.subcounties} subcounties, ${stats.wards} wards.`,
+            data: stats,
+        };
+    } catch (error) {
+        await t.rollback();
+        console.error("Error seeding locations:", error);
+        return {
+            statusCode: 500,
+            message: error.message || "Failed to seed locations",
             data: null,
         };
     }
