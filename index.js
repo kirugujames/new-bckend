@@ -59,6 +59,27 @@ const BASE_URL = process.env.BASE_URL || process.env.VERCEL_URL
 // Swagger setup
 import path from 'path';
 
+const apiPaths = [
+  "auth/*.js",
+  "blog/*.js",
+  "events/*.js",
+  "jobs/*.js",
+  "member-registration/*.js",
+  "aspirants/*.js",
+  "donations/*.js",
+  "political-position/*.js",
+  "volunteer/*.js",
+  "contact-us/*.js",
+  "audit-trails/*.js",
+  "mpesa/*.js",
+  "locations/*.js",
+  "merchandise/*.js",
+  "party-positions/*.js",
+].map(file => path.resolve(process.cwd(), file));
+
+console.log("DEBUG: Current Working Directory:", process.cwd());
+console.log("DEBUG: Resolved Swagger Paths:", apiPaths);
+
 export const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -95,23 +116,7 @@ export const swaggerOptions = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: [
-    "auth/*.js",
-    "blog/*.js",
-    "events/*.js",
-    "jobs/*.js",
-    "member-registration/*.js",
-    "aspirants/*.js",
-    "donations/*.js",
-    "political-position/*.js",
-    "volunteer/*.js",
-    "contact-us/*.js",
-    "audit-trails/*.js",
-    "mpesa/*.js",
-    "locations/*.js",
-    "merchandise/*.js",
-    "party-positions/*.js",
-  ].map(file => path.resolve(process.cwd(), file)),
+  apis: apiPaths,
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
