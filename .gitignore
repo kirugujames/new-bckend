@@ -28,6 +28,8 @@ coverage/
 
 # Editor directories and files
 .vscode/
+.env
+.env.mpesa.example
 .idea/
 *.swp
 *.swo
