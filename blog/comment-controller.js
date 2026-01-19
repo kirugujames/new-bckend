@@ -1,18 +1,9 @@
 import Blog from "./Models/Blog.js";
 import Comment from "./Models/Comments.js";
-import MemberRegistration from "../member-registration/models/memberRegistration.js";
-
 // Comment on blog
 export async function commentOnBlog(req) {
   const { blog_id, message, commenter_name, email } = req.body;
   try {
-    const member = await MemberRegistration.findAll({ where: { email } })
-    console.log(req.body)
-    console.log(member);
-    if (member.length === 0) {
-      return { message: "member not found", statusCode: 404 };
-    }
-
     const blog = await Blog.findByPk(blog_id);
     if (!blog) return { message: "Blog not found", data: null, statusCode: 404 };
 
