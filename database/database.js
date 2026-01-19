@@ -52,7 +52,7 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
     ssl: false
   },
   pool: {
-    max: 5,
+    max: 1, // Reduced to 1 to avoid 'max_user_connections' error on Vercel
     min: 0,
     acquire: 30000,
     idle: 10000
