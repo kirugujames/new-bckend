@@ -47,7 +47,7 @@ const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
   dialect: "mysql",
   dialectOptions: {
     connectTimeout: 60000,
-    ssl: false  // Important: cPanel MySQL doesn't require SSL
+    ssl: false  
   },
   pool: {
     max: 5,
