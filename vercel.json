@@ -20,7 +20,8 @@
                     "audit-trails/*.js",
                     "mpesa/*.js",
                     "locations/*.js",
-                    "party-positions/*.js"
+                    "party-positions/*.js",
+                    "templates/**"
                 ]
             }
         }
