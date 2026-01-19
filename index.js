@@ -52,11 +52,13 @@ app.use(cors());
 
 // Load environment variables
 const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || process.env.VERCEL_URL 
-  ? `https://${process.env.VERCEL_URL}` 
+const BASE_URL = process.env.BASE_URL || process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
   : 'http://localhost';
 
 // Swagger setup
+import path from 'path';
+
 export const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -66,9 +68,9 @@ export const swaggerOptions = {
       description: "API documentation for Shikana Frontliner Party",
     },
     servers: [
-      { 
-        url: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${BASE_URL}:${PORT}`, 
-        description: process.env.VERCEL ? "Production Server" : "Development Server" 
+      {
+        url: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `${BASE_URL}:${PORT}`,
+        description: process.env.VERCEL ? "Production Server" : "Development Server"
       }
     ],
     tags: [
@@ -94,22 +96,22 @@ export const swaggerOptions = {
     security: [{ bearerAuth: [] }],
   },
   apis: [
-    "./auth/*.js",
-    "./blog/*.js",
-    "./events/*.js",
-    "./jobs/*.js",
-    "./member-registration/*.js",
-    "./aspirants/*.js",
-    "./donations/*.js",
-    "./political-position/*.js",
-    "./volunteer/*.js",
-    "./contact-us/*.js",
-    "./audit-trails/*.js",
-    "./mpesa/*.js",
-    "./locations/*.js",
-    "./merchandise/*.js",
-    "./party-positions/*.js",
-  ],
+    "auth/*.js",
+    "blog/*.js",
+    "events/*.js",
+    "jobs/*.js",
+    "member-registration/*.js",
+    "aspirants/*.js",
+    "donations/*.js",
+    "political-position/*.js",
+    "volunteer/*.js",
+    "contact-us/*.js",
+    "audit-trails/*.js",
+    "mpesa/*.js",
+    "locations/*.js",
+    "merchandise/*.js",
+    "party-positions/*.js",
+  ].map(file => path.resolve(process.cwd(), file)),
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
@@ -156,8 +158,8 @@ app.use("/api/party-positions", partyPositionRouter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Server is running',
     environment: process.env.VERCEL ? 'production' : 'development'
   });
@@ -165,7 +167,7 @@ app.get('/api/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Shikana Frontliner Party API',
     docs: '/api-docs'
   });
@@ -174,10 +176,10 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send({ 
-    message: 'Internal server error', 
-    statusCode: 500, 
-    data: null 
+  res.status(500).send({
+    message: 'Internal server error',
+    statusCode: 500,
+    data: null
   });
 });
 
@@ -186,11 +188,11 @@ let dbInitialized = false;
 
 async function initializeDatabase() {
   if (dbInitialized) return;
-  
+
   try {
     await sequelize.authenticate();
     console.log("Database connected successfully");
-    
+
     // DON'T use sequelize.sync() in production
     // Tables should already exist in cPanel MySQL
     if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
@@ -198,7 +200,7 @@ async function initializeDatabase() {
       await sequelize.sync({ alter: true });
       console.log("Tables created/updated successfully");
     }
-    
+
     dbInitialized = true;
   } catch (err) {
     console.error("Failed to initialize database:", err.message);
@@ -211,7 +213,7 @@ if (!process.env.VERCEL) {
   (async () => {
     try {
       await initializeDatabase();
-      
+
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
         console.log(`Swagger docs available at ${BASE_URL}:${PORT}/api-docs`);
@@ -229,6 +231,6 @@ export default async function handler(req, res) {
   if (!dbInitialized) {
     await initializeDatabase();
   }
-  
+
   return app(req, res);
 }
