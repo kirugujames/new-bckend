@@ -7,13 +7,16 @@ dotenv.config();
 
 // Create transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com', // Fallback to Gmail if not set
-  port: Number(process.env.SMTP_PORT || 465), // Use 465 for secure
-  secure: true, // true for 465, false for other ports
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: Number(process.env.SMTP_PORT || 587), // Changed default to 587
+  secure: process.env.SMTP_PORT === '465', // true for 465, false for 587
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: true
+  }
 });
 
 transporter
@@ -41,8 +44,8 @@ export async function sendEmail(req) {
       let template = fs.readFileSync(templatePath, 'utf8');
 
       // Replace placeholders
-      const title = req.title || "Notification"; // Default title if not provided
-      const bodyContent = req.htmlBody || `<p>${req.message}</p>`; // Use HTML body if provided, else wrap message in p
+      const title = req.title || "Notification";
+      const bodyContent = req.htmlBody || `<p>${req.message}</p>`;
 
       template = template.replace('{{TITLE}}', title);
       template = template.replace('{{BODY_CONTENT}}', bodyContent);
