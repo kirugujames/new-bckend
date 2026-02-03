@@ -52,9 +52,8 @@ app.use(cors());
 
 // Load environment variables
 const PORT = process.env.PORT || 3000;
-const BASE_URL = process.env.BASE_URL || process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'http://localhost';
+const isProduction = process.env.NODE_ENV === 'production' || (process.env.VERCEL_URL && process.env.VERCEL_URL !== 'localhost');
+const BASE_URL = isProduction ? `http://${process.env.VERCEL_URL}` : `http://localhost`;
 
 // Swagger setup
 import path from 'path';
@@ -120,13 +119,7 @@ export const swaggerOptions = {
 };
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs, {
-  customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui.min.css',
-  customJs: [
-    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-bundle.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.0/swagger-ui-standalone-preset.min.js'
-  ]
-}));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Model relationships
 Blog.hasMany(Comment, { foreignKey: "blog_id", onDelete: "CASCADE" });
@@ -208,7 +201,7 @@ async function initializeDatabase() {
     // Tables should already exist in cPanel MySQL
     if (!process.env.VERCEL && process.env.NODE_ENV !== 'production') {
       // Only sync in local development
-      await sequelize.sync({ alter: true });
+      await sequelize.sync({ alter: false });
       console.log("Tables created/updated successfully");
     }
 
@@ -227,7 +220,7 @@ if (!process.env.VERCEL) {
 
       app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
-        console.log(`Swagger docs available at ${BASE_URL}:${PORT}/api-docs`);
+        console.log(`Swagger docs available at ${BASE_URL}/api-docs`);
       });
     } catch (err) {
       console.error("Failed to start server:", err.message);
