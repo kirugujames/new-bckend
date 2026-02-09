@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { User, Role } from "./models/index.js";
-import { sendOtp, verifyOtp } from "../utils/otp-service.js";
+import { sendOTPEmail, verifyOTP, generateOTP, getOTPExpiry } from "../utils/otp-service.js";
 import { sendEmail } from "../utils/send-email.js";
 import crypto from "crypto";
 
@@ -217,7 +217,7 @@ export async function authenticateUser(req) {
     }
 
     // Optional: Send OTP if enabled
-    // await sendOtp(user.email);
+    // await sendOTPEmail(user.email, otp, 'verification', user.first_name);
 
     const data = {
       token: token,
@@ -239,10 +239,15 @@ export async function authenticateUser(req) {
 // Verify OTP
 export async function verifyAuthOtp(req) {
   try {
-    const result = await verifyOtp(req);
+    const { email, otp } = req.body;
+    const user = await User.findOne({ where: { email } });
+    if (!user)
+      return { statusCode: 404, message: "User not found", data: null };
+
+    const result = verifyOTP(user, otp);
     console.log(result);
-    if (!result.ok)
-      return { statusCode: 400, message: "Invalid OTP", data: null };
+    if (!result.valid)
+      return { statusCode: 400, message: result.message, data: null };
 
     return { statusCode: 200, message: "OTP verified successfully", data: null };
   } catch (err) {
@@ -254,8 +259,20 @@ export async function verifyAuthOtp(req) {
 export async function resendOtp(req) {
   const { email } = req.body;
   try {
-    const result = await sendOtp(email);
-    if (!result.ok)
+    const user = await User.findOne({ where: { email } });
+    if (!user)
+      return { statusCode: 404, message: "User not found", data: null };
+
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    await user.update({
+      otp_code: otp,
+      otp_expires_at: otpExpiry
+    });
+
+    const result = await sendOTPEmail(email, otp, 'verification', user.first_name);
+    if (!result.success)
       return { statusCode: 500, message: "Failed to resend OTP", data: null };
 
     return { statusCode: 200, message: "OTP resent successfully", data: null };
