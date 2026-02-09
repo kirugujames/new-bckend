@@ -171,7 +171,7 @@ const MemberRegistration = sequelize.define(
     },
   },
   {
-    tableName: "memberRegistration",
+    tableName: "memberregistration",
     timestamps: false,
   }
 );
