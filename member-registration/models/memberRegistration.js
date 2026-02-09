@@ -169,6 +169,18 @@ const MemberRegistration = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    otp_code: {
+      type: DataTypes.STRING(6),
+      allowNull: true,
+    },
+    otp_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    otp_verified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     tableName: "memberregistration",

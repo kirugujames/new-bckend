@@ -6,6 +6,10 @@ import Comment from "./Models/Comments.js";
 export async function getAllBlog() {
   try {
     const blogs = await Blog.findAll();
+    console.log(`[DEBUG] getAllBlog: Retrieved ${blogs.length} blogs`);
+    blogs.forEach((blog, index) => {
+      console.log(`[DEBUG] Blog ${index + 1}: ID=${blog.id}, Image length=${blog.image?.length || 0}`);
+    });
     return { message: "Blogs fetched successfully", data: blogs, statusCode: 200 };
   } catch (error) {
     return { message: error.message, error: error.message, statusCode: 500 };
@@ -29,6 +33,10 @@ export async function getMainBlog(data) {
   console.log(data)
   try {
     const result = await Blog.findAll({ where: { isMain: data } });
+    console.log(`[DEBUG] getMainBlog: Retrieved ${result.length} main blogs`);
+    result.forEach((blog, index) => {
+      console.log(`[DEBUG] Main Blog ${index + 1}: ID=${blog.id}, Image length=${blog.image?.length || 0}`);
+    });
     return { message: "Blog retrieved successfully", statusCode: 200, data: result }
   } catch (error) {
     return { message: error.message, error: error.message, statusCode: 500 };
@@ -76,6 +84,8 @@ export async function getBlogById(id) {
   try {
     const blog = await Blog.findByPk(id, { include: Comment });
     if (!blog) return { message: "Blog not found", data: null, statusCode: 404 };
+    console.log(`[DEBUG] getBlogById: ID=${blog.id}, Image length=${blog.image?.length || 0}`);
+    console.log(`[DEBUG] Image preview: ${blog.image?.substring(0, 100)}`);
     return { message: "Blog fetched successfully", data: blog, statusCode: 200 };
   } catch (error) {
     return { message: error.message, error: error.message, statusCode: 500 };

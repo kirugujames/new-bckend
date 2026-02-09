@@ -1,50 +1,113 @@
-import express from "express";
-import dotenv from "dotenv";
-import { sendEmail as sendMail } from "./send-email.js";
-const app = express();
-app.use(express.json());
+import { randomInt } from 'crypto';
+import { sendEmail } from './send-email.js';
 
-const otps = new Map();
-
-function generateOtp() {
-    return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+/**
+ * Generate a 6-digit OTP code
+ * @returns {string} 6-digit OTP
+ */
+export function generateOTP() {
+    return randomInt(100000, 999999).toString();
 }
 
-export async function sendOtp(email) {
-    if (!email) return { message: "email required", data: null, statusCode: 400 };
-    const otp = generateOtp();
-    const expiresAt = Date.now() + 5 * 60 * 1000;
-    otps.set(email, { otp, expiresAt });
-
-    const subject = "Your OTP Code";
-    const text = `Your OTP is ${otp}. It expires in 5 minutes.`;
-
-    try {
-        const info = await sendMail({ to: email, subject, message: text });
-        if(!info.success) {
-            return { ok: false, message: "Failed to send OTP email", error: info.error , statusCode: 500 };
-        }
-        return { ok: true, message: "OTP sent", info , statusCode: 200 };
-    } catch (err) {
-        console.error(err);
-        return { ok: false, error: err.message, statusCode: 500 };
-    }
+/**
+ * Calculate OTP expiry time (5 minutes from now)
+ * @returns {Date} Expiry timestamp
+ */
+export function getOTPExpiry() {
+    const expiry = new Date();
+    expiry.setMinutes(expiry.getMinutes() + 5);
+    return expiry;
 }
 
-export async function verifyOtp(req) {
-    const { email, otp } = req.body;
-    if (!email || !otp) return { message: "email and otp required", statusCode: 400 };
+/**
+ * Send OTP via email
+ * @param {string} email - Recipient email
+ * @param {string} otp - OTP code
+ * @param {string} purpose - Purpose of OTP (verification/cancellation)
+ * @param {string} firstName - Member's first name
+ * @returns {Promise<Object>} Email sending result
+ */
+export async function sendOTPEmail(email, otp, purpose, firstName = 'Member') {
+    const purposeText = purpose === 'verification'
+        ? 'verify your membership'
+        : 'cancel your membership';
 
-    const record = otps.get(email);
-    if (!record) return { message: "no otp found" ,statusCode: 400 };
+    const subject = `Your OTP Code - ${purpose === 'verification' ? 'Membership Verification' : 'Membership Cancellation'}`;
 
-    if (Date.now() > record.expiresAt) {
-        otps.delete(email);
-        return { message: "otp expired", statusCode: 400 };
+    const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Hello ${firstName},</h2>
+      <p>You have requested to ${purposeText}.</p>
+      <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; text-align: center; margin: 20px 0;">
+        <p style="margin: 0; font-size: 14px; color: #666;">Your OTP Code:</p>
+        <h1 style="margin: 10px 0; color: #2196F3; font-size: 36px; letter-spacing: 5px;">${otp}</h1>
+        <p style="margin: 0; font-size: 12px; color: #999;">This code will expire in 5 minutes</p>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        If you did not request this, please ignore this email or contact support.
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+      <p style="color: #999; font-size: 12px;">
+        This is an automated message from Shikana Frontliner Party. Please do not reply to this email.
+      </p>
+    </div>
+  `;
+
+    const message = `Hello ${firstName},\n\nYour OTP code to ${purposeText} is: ${otp}\n\nThis code will expire in 5 minutes.\n\nIf you did not request this, please ignore this email.`;
+
+    return await sendEmail({
+        to: email,
+        subject,
+        message,
+        htmlBody,
+        title: subject
+    });
+}
+
+/**
+ * Verify OTP code
+ * @param {Object} member - Member object from database
+ * @param {string} otp - OTP code to verify
+ * @returns {Object} Verification result
+ */
+export function verifyOTP(member, otp) {
+    if (!member.otp_code) {
+        return {
+            valid: false,
+            message: 'No OTP found. Please request a new OTP.'
+        };
     }
 
-    if (record.otp !== otp) return { message: `invalid otp ${record.otp}`, statusCode: 400  };
+    if (member.otp_code !== otp) {
+        return {
+            valid: false,
+            message: 'Invalid OTP code. Please check and try again.'
+        };
+    }
 
-    otps.delete(email);
-    return { ok: true, message: "otp verified" , statusCode: 200 };
+    const now = new Date();
+    if (now > new Date(member.otp_expires_at)) {
+        return {
+            valid: false,
+            message: 'OTP has expired. Please request a new OTP.'
+        };
+    }
+
+    return {
+        valid: true,
+        message: 'OTP verified successfully'
+    };
+}
+
+/**
+ * Clear OTP data from member record
+ * @param {Object} member - Member object from database
+ * @returns {Promise<void>}
+ */
+export async function clearOTP(member) {
+    await member.update({
+        otp_code: null,
+        otp_expires_at: null,
+        otp_verified: false
+    });
 }

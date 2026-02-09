@@ -3,6 +3,7 @@ import MemberRegistration from "./models/memberRegistration.js";
 import { registerUserAsMember } from "../auth/auth-controller.js";
 import { randomBytes } from "crypto";
 import { sendEmail } from "../utils/send-email.js";
+import { generateOTP, getOTPExpiry, sendOTPEmail, verifyOTP, clearOTP } from "../utils/otp-service.js";
 
 dotenv.config();
 
@@ -465,8 +466,8 @@ export async function toggleMemberStatus(req) {
   }
 }
 
-// Cancel membership
-export async function cancelMembership(req) {
+// Request OTP for membership cancellation
+export async function requestCancellationOTP(req) {
   const { memberId, nationalId, hasConsent } = req.body;
 
   if (!hasConsent) {
@@ -493,7 +494,87 @@ export async function cancelMembership(req) {
       };
     }
 
+    // Generate and store OTP
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    await member.update({
+      otp_code: otp,
+      otp_expires_at: otpExpiry,
+      otp_verified: false,
+    });
+
+    // Send OTP via email
+    await sendOTPEmail(member.email, otp, 'cancellation', member.first_name);
+
+    return {
+      message: "OTP sent successfully to your registered email",
+      data: {
+        email: member.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'), // Mask email
+      },
+      statusCode: 200,
+    };
+  } catch (error) {
+    console.error("Request Cancellation OTP Error:", error);
+    return {
+      message: error.message || "Internal server error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+}
+
+// Cancel membership with OTP verification
+export async function cancelMembership(req) {
+  const { memberId, nationalId, otp, hasConsent } = req.body;
+
+  if (!hasConsent) {
+    return {
+      message: "Consent is required to cancel membership",
+      data: null,
+      statusCode: 400,
+    };
+  }
+
+  if (!otp) {
+    return {
+      message: "OTP is required. Please request an OTP first.",
+      data: null,
+      statusCode: 400,
+    };
+  }
+
+  try {
+    const member = await MemberRegistration.findOne({
+      where: {
+        member_code: memberId,
+        idNo: nationalId,
+      },
+    });
+
+    if (!member) {
+      return {
+        message: "Member not found with the provided details",
+        data: null,
+        statusCode: 404,
+      };
+    }
+
+    // Verify OTP
+    const otpVerification = verifyOTP(member, otp);
+    if (!otpVerification.valid) {
+      return {
+        message: otpVerification.message,
+        data: null,
+        statusCode: 400,
+      };
+    }
+
+    // Update membership status to withdrawn
     await member.update({ status: "withdrawn" });
+
+    // Clear OTP after successful cancellation
+    await clearOTP(member);
 
     return {
       message: "Membership cancelled successfully",
@@ -513,8 +594,8 @@ export async function cancelMembership(req) {
   }
 }
 
-// Verify member existence
-export async function verifyMemberExistence(req) {
+// Request OTP for member verification
+export async function requestVerificationOTP(req) {
   const { idNo, phone, hasConsent } = req.body;
 
   if (!hasConsent) {
@@ -541,8 +622,87 @@ export async function verifyMemberExistence(req) {
       };
     }
 
+    // Generate and store OTP
+    const otp = generateOTP();
+    const otpExpiry = getOTPExpiry();
+
+    await member.update({
+      otp_code: otp,
+      otp_expires_at: otpExpiry,
+      otp_verified: false,
+    });
+
+    // Send OTP via email
+    await sendOTPEmail(member.email, otp, 'verification', member.first_name);
+
     return {
-      message: "Member found",
+      message: "OTP sent successfully to your registered email",
+      data: {
+        email: member.email.replace(/(.{2})(.*)(@.*)/, '$1***$3'), // Mask email
+      },
+      statusCode: 200,
+    };
+  } catch (error) {
+    console.error("Request Verification OTP Error:", error);
+    return {
+      message: error.message || "Internal server error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+}
+
+// Verify member existence with OTP
+export async function verifyMemberExistence(req) {
+  const { idNo, phone, otp, hasConsent } = req.body;
+
+  if (!hasConsent) {
+    return {
+      message: "Consent is required to verify member existence",
+      data: null,
+      statusCode: 400,
+    };
+  }
+
+  if (!otp) {
+    return {
+      message: "OTP is required. Please request an OTP first.",
+      data: null,
+      statusCode: 400,
+    };
+  }
+
+  try {
+    const member = await MemberRegistration.findOne({
+      where: {
+        idNo: idNo,
+        phone: phone,
+      },
+    });
+
+    if (!member) {
+      return {
+        message: "Member not found with the provided details",
+        data: { exists: false },
+        statusCode: 404,
+      };
+    }
+
+    // Verify OTP
+    const otpVerification = verifyOTP(member, otp);
+    if (!otpVerification.valid) {
+      return {
+        message: otpVerification.message,
+        data: null,
+        statusCode: 400,
+      };
+    }
+
+    // Clear OTP after successful verification
+    await clearOTP(member);
+
+    return {
+      message: "Member verified successfully",
       data: {
         exists: true,
         member_code: member.member_code,

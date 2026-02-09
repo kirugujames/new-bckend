@@ -9,6 +9,8 @@ import {
   updateMember,
   cancelMembership,
   verifyMemberExistence,
+  requestVerificationOTP,
+  requestCancellationOTP,
 } from "./register-controller.js";
 import dotenv from "dotenv";
 import { verifyToken } from "../utils/jwtInterceptor.js";
@@ -78,6 +80,32 @@ const validateCancellation = [
 const validateExistence = [
   body("idNo").notEmpty().withMessage("National ID is required"),
   body("phone").notEmpty().withMessage("Phone number is required"),
+  body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
+];
+
+const validateOTPRequest = [
+  body("idNo").notEmpty().withMessage("National ID is required"),
+  body("phone").notEmpty().withMessage("Phone number is required"),
+  body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
+];
+
+const validateOTPVerification = [
+  body("idNo").notEmpty().withMessage("National ID is required"),
+  body("phone").notEmpty().withMessage("Phone number is required"),
+  body("otp").notEmpty().withMessage("OTP is required"),
+  body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
+];
+
+const validateCancellationOTPRequest = [
+  body("memberId").notEmpty().withMessage("Member ID is required"),
+  body("nationalId").notEmpty().withMessage("National ID is required"),
+  body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
+];
+
+const validateCancellationWithOTP = [
+  body("memberId").notEmpty().withMessage("Member ID is required"),
+  body("nationalId").notEmpty().withMessage("National ID is required"),
+  body("otp").notEmpty().withMessage("OTP is required"),
   body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
 ];
 
@@ -383,57 +411,10 @@ router.patch("/update/member/:id", verifyToken, auditMiddleware("MEMBER_UPDATE")
 
 /**
  * @swagger
- * /api/members/cancel/membership:
+ * /api/members/verify/request-otp:
  *   post:
- *     summary: Cancel membership
- *     description: Cancels a membership after verifying member ID and National ID
- *     tags: [Member]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - memberId
- *               - nationalId
- *               - hasConsent
- *             properties:
- *               memberId:
- *                 type: string
- *                 example: SFUP-123
- *               nationalId:
- *                 type: string
- *                 example: "234566645"
- *               hasConsent:
- *                 type: boolean
- *                 example: true
- *     responses:
- *       200:
- *         description: Membership cancelled successfully
- *       400:
- *         description: Missing fields or consent not given
- *       404:
- *         description: Member not found
- *       500:
- *         description: Internal server error
- */
-router.post("/cancel/membership", auditMiddleware("MEMBER_CANCEL_MEMBERSHIP"), validateCancellation, async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const results = await cancelMembership(req);
-  return res.status(results.statusCode || 200).send(results);
-});
-
-/**
- * @swagger
- * /api/members/verify/existence:
- *   post:
- *     summary: Verify member existence
- *     description: Checks if a member exists based on National ID and phone number
+ *     summary: Request OTP for member verification
+ *     description: Sends an OTP to the member's registered email for verification
  *     tags: [Member]
  *     requestBody:
  *       required: true
@@ -457,7 +438,7 @@ router.post("/cancel/membership", auditMiddleware("MEMBER_CANCEL_MEMBERSHIP"), v
  *                 example: true
  *     responses:
  *       200:
- *         description: Member found
+ *         description: OTP sent successfully
  *       400:
  *         description: Missing fields or consent not given
  *       404:
@@ -465,7 +446,156 @@ router.post("/cancel/membership", auditMiddleware("MEMBER_CANCEL_MEMBERSHIP"), v
  *       500:
  *         description: Internal server error
  */
-router.post("/verify/existence", auditMiddleware("MEMBER_VERIFY_EXISTENCE"), validateExistence, async (req, res) => {
+router.post("/verify/request-otp", auditMiddleware("MEMBER_VERIFY_REQUEST_OTP"), validateOTPRequest, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const results = await requestVerificationOTP(req);
+  return res.status(results.statusCode || 200).send(results);
+});
+
+/**
+ * @swagger
+ * /api/members/cancel/request-otp:
+ *   post:
+ *     summary: Request OTP for membership cancellation
+ *     description: Sends an OTP to the member's registered email for cancellation
+ *     tags: [Member]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - memberId
+ *               - nationalId
+ *               - hasConsent
+ *             properties:
+ *               memberId:
+ *                 type: string
+ *                 example: SFU-123456
+ *               nationalId:
+ *                 type: string
+ *                 example: "12345678"
+ *               hasConsent:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       400:
+ *         description: Missing fields or consent not given
+ *       404:
+ *         description: Member not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/cancel/request-otp", auditMiddleware("MEMBER_CANCEL_REQUEST_OTP"), validateCancellationOTPRequest, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const results = await requestCancellationOTP(req);
+  return res.status(results.statusCode || 200).send(results);
+});
+
+/**
+ * @swagger
+ * /api/members/cancel/membership:
+ *   post:
+ *     summary: Cancel membership with OTP
+ *     description: Cancels a membership after verifying OTP
+ *     tags: [Member]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - memberId
+ *               - nationalId
+ *               - otp
+ *               - hasConsent
+ *             properties:
+ *               memberId:
+ *                 type: string
+ *                 example: SFU-123456
+ *               nationalId:
+ *                 type: string
+ *                 example: "234566645"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               hasConsent:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Membership cancelled successfully
+ *       400:
+ *         description: Invalid OTP or missing fields
+ *       404:
+ *         description: Member not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/cancel/membership", auditMiddleware("MEMBER_CANCEL_MEMBERSHIP"), validateCancellationWithOTP, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const results = await cancelMembership(req);
+  return res.status(results.statusCode || 200).send(results);
+});
+
+/**
+ * @swagger
+ * /api/members/verify/existence:
+ *   post:
+ *     summary: Verify member existence with OTP
+ *     description: Checks if a member exists and verifies OTP
+ *     tags: [Member]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idNo
+ *               - phone
+ *               - otp
+ *               - hasConsent
+ *             properties:
+ *               idNo:
+ *                 type: string
+ *                 example: "12345678"
+ *               phone:
+ *                 type: string
+ *                 example: "+254712345678"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
+ *               hasConsent:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Member verified successfully
+ *       400:
+ *         description: Invalid OTP or missing fields
+ *       404:
+ *         description: Member not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/verify/existence", auditMiddleware("MEMBER_VERIFY_EXISTENCE"), validateOTPVerification, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
