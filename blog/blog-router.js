@@ -82,7 +82,8 @@ const validateComment = [
  *                 example: "Artificial Intelligence is redefining how news is produced and consumed worldwide."
  *               image:
  *                 type: string
- *                 example: "ai-journalism.jpg"
+ *                 description: Base64 encoded image string
+ *                 example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
  *               isMain:
  *                  type: character
  *                  example: 'Y'
@@ -158,7 +159,8 @@ router.post("/add", verifyToken, auditMiddleware("BLOG_CREATE"), validateBlog, a
  *                     example: "Kenya's young population holds the key to the nation's democratic transformation."
  *                   image:
  *                     type: string
- *                     example: "youth-politics-kenya.jpg"
+ *                     description: Base64 encoded image string
+ *                     example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
  *       500:
  *         description: Internal server error
  */
@@ -212,7 +214,8 @@ router.get("/getMainBlog", async (req, res) => {
  *                         example: "Kenya's young population holds the key to the nation's democratic transformation."
  *                       image:
  *                         type: string
- *                         example: "youth-politics-kenya.jpg"
+ *                         description: Base64 encoded image string
+ *                         example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
  *       500:
  *         description: Internal server error
  */
@@ -275,7 +278,8 @@ router.get("/landing", async (req, res) => {
  *                       example: "2025-11-06T20:45:32Z"
  *                     image:
  *                       type: string
- *                       example: "ai-future-media.jpg"
+ *                       description: Base64 encoded image string
+ *                       example: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD..."
  *       400:
  *         description: Invalid blog ID or validation error
  *       404:

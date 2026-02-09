@@ -53,6 +53,11 @@ export async function registerMember(req) {
   const normalizedPoliticalDeclaration = (politicalDeclaration === true || politicalDeclaration === "true" || politicalDeclaration === "yes");
   const normalizedTermsConsent = (termsConsent === true || termsConsent === "true" || termsConsent === "yes");
 
+  // Normalize specialInterest if it's a list
+  const normalizedSpecialInterest = Array.isArray(specialInterest)
+    ? specialInterest.join(", ")
+    : specialInterest;
+
   const password = generateStrongTempPassword();
 
   try {
@@ -98,7 +103,7 @@ export async function registerMember(req) {
         pollingStation,
         streetVillage,
         membershipStatus,
-        specialInterest,
+        specialInterest: normalizedSpecialInterest,
         membershipNumber,
         localLeader,
         verificationCode,
@@ -175,7 +180,7 @@ export async function registerMember(req) {
         pollingStation,
         streetVillage,
         membershipStatus,
-        specialInterest,
+        specialInterest: normalizedSpecialInterest,
         membershipNumber,
         localLeader,
         verificationCode,
@@ -194,7 +199,7 @@ export async function registerMember(req) {
 
       // Create user login account too
       // Create user login account too
-      const authResponse = await registerUserAsMember(email, password, role_id, email, first_name, last_name);
+      const authResponse = await registerUserAsMember(email, password, 2, email, first_name, last_name);
       console.log("User registration response:", authResponse);
     }
 
@@ -371,6 +376,10 @@ export async function updateMember(req) {
     const normalizedPoliticalDeclaration = (politicalDeclaration === true || politicalDeclaration === "true" || politicalDeclaration === "yes");
     const normalizedTermsConsent = (termsConsent === true || termsConsent === "true" || termsConsent === "yes");
 
+    const normalizedSpecialInterest = Array.isArray(specialInterest)
+      ? specialInterest.join(", ")
+      : specialInterest;
+
     const member = await MemberRegistration.findByPk(id);
     if (!member) {
       return {
@@ -401,7 +410,7 @@ export async function updateMember(req) {
       pollingStation,
       streetVillage,
       membershipStatus,
-      specialInterest,
+      specialInterest: normalizedSpecialInterest,
       membershipNumber,
       localLeader,
       verificationCode,
@@ -450,6 +459,103 @@ export async function toggleMemberStatus(req) {
   } catch (error) {
     return {
       message: error.message,
+      data: null,
+      statusCode: 500,
+    };
+  }
+}
+
+// Cancel membership
+export async function cancelMembership(req) {
+  const { memberId, nationalId, hasConsent } = req.body;
+
+  if (!hasConsent) {
+    return {
+      message: "Consent is required to cancel membership",
+      data: null,
+      statusCode: 400,
+    };
+  }
+
+  try {
+    const member = await MemberRegistration.findOne({
+      where: {
+        member_code: memberId,
+        idNo: nationalId,
+      },
+    });
+
+    if (!member) {
+      return {
+        message: "Member not found with the provided details",
+        data: null,
+        statusCode: 404,
+      };
+    }
+
+    await member.update({ status: "withdrawn" });
+
+    return {
+      message: "Membership cancelled successfully",
+      data: {
+        memberId: member.member_code,
+        status: member.status,
+      },
+      statusCode: 200,
+    };
+  } catch (error) {
+    console.error("Cancel Membership Error:", error);
+    return {
+      message: error.message || "Internal server error",
+      data: null,
+      statusCode: 500,
+    };
+  }
+}
+
+// Verify member existence
+export async function verifyMemberExistence(req) {
+  const { idNo, phone, hasConsent } = req.body;
+
+  if (!hasConsent) {
+    return {
+      message: "Consent is required to verify member existence",
+      data: null,
+      statusCode: 400,
+    };
+  }
+
+  try {
+    const member = await MemberRegistration.findOne({
+      where: {
+        idNo: idNo,
+        phone: phone,
+      },
+    });
+
+    if (!member) {
+      return {
+        message: "Member not found with the provided details",
+        data: { exists: false },
+        statusCode: 404,
+      };
+    }
+
+    return {
+      message: "Member found",
+      data: {
+        exists: true,
+        member_code: member.member_code,
+        status: member.status,
+        first_name: member.first_name,
+        last_name: member.last_name,
+      },
+      statusCode: 200,
+    };
+  } catch (error) {
+    console.error("Verify Member Existence Error:", error);
+    return {
+      message: error.message || "Internal server error",
       data: null,
       statusCode: 500,
     };

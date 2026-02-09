@@ -109,7 +109,7 @@ const MemberRegistration = sequelize.define(
       allowNull: true,
     },
     specialInterest: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     membershipNumber: {

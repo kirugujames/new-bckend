@@ -7,6 +7,8 @@ import {
   getMemberByIdNo,
   deleteMember,
   updateMember,
+  cancelMembership,
+  verifyMemberExistence,
 } from "./register-controller.js";
 import dotenv from "dotenv";
 import { verifyToken } from "../utils/jwtInterceptor.js";
@@ -65,6 +67,18 @@ const validateUpdate = [
   body("paymentMethod").optional(),
   body("paymentPhoneNumber").optional(),
   body("amount").optional(),
+];
+
+const validateCancellation = [
+  body("memberId").notEmpty().withMessage("Member ID is required"),
+  body("nationalId").notEmpty().withMessage("National ID is required"),
+  body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
+];
+
+const validateExistence = [
+  body("idNo").notEmpty().withMessage("National ID is required"),
+  body("phone").notEmpty().withMessage("Phone number is required"),
+  body("hasConsent").isBoolean().withMessage("Consent is required (true/false)"),
 ];
 
 /**
@@ -152,7 +166,10 @@ const validateUpdate = [
  *                 type: string
  *                 example: new
  *               specialInterest:
- *                 type: string
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["Youths", "Minority Group"]
  *               membershipNumber:
  *                 type: string
  *               localLeader:
@@ -362,6 +379,100 @@ router.patch("/update/member/:id", verifyToken, auditMiddleware("MEMBER_UPDATE")
   const memberId = req.params.id;
   const results = await updateMember(req, memberId);
   return res.send(results);
+});
+
+/**
+ * @swagger
+ * /api/members/cancel/membership:
+ *   post:
+ *     summary: Cancel membership
+ *     description: Cancels a membership after verifying member ID and National ID
+ *     tags: [Member]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - memberId
+ *               - nationalId
+ *               - hasConsent
+ *             properties:
+ *               memberId:
+ *                 type: string
+ *                 example: SFUP-123
+ *               nationalId:
+ *                 type: string
+ *                 example: "234566645"
+ *               hasConsent:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Membership cancelled successfully
+ *       400:
+ *         description: Missing fields or consent not given
+ *       404:
+ *         description: Member not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/cancel/membership", auditMiddleware("MEMBER_CANCEL_MEMBERSHIP"), validateCancellation, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const results = await cancelMembership(req);
+  return res.status(results.statusCode || 200).send(results);
+});
+
+/**
+ * @swagger
+ * /api/members/verify/existence:
+ *   post:
+ *     summary: Verify member existence
+ *     description: Checks if a member exists based on National ID and phone number
+ *     tags: [Member]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idNo
+ *               - phone
+ *               - hasConsent
+ *             properties:
+ *               idNo:
+ *                 type: string
+ *                 example: "12345678"
+ *               phone:
+ *                 type: string
+ *                 example: "+254712345678"
+ *               hasConsent:
+ *                 type: boolean
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Member found
+ *       400:
+ *         description: Missing fields or consent not given
+ *       404:
+ *         description: Member not found
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/verify/existence", auditMiddleware("MEMBER_VERIFY_EXISTENCE"), validateExistence, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const results = await verifyMemberExistence(req);
+  return res.status(results.statusCode || 200).send(results);
 });
 
 export default router;

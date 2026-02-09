@@ -35,7 +35,7 @@ const Merchandise = sequelize.define(
             allowNull: true,
         },
         image: {
-            type: DataTypes.TEXT, // Changed to TEXT to support large base64 strings
+            type: DataTypes.TEXT('long'), // Changed to TEXT('long') to support large base64 strings
             allowNull: true,
         },
         status: {
